@@ -1,0 +1,6 @@
+{
+  "*.ts?(x)": ["prettier --write", "eslint --fix"],
+  "*.sol": [
+    "prettier --write --plugin=prettier-plugin-solidity 'src/contracts/**/*.sol'"
+  ]
+}
