@@ -57,7 +57,7 @@ contract Donation is DonationInterface {
     ) external {
         require(_startAt > block.timestamp, "start at < now"); //시작 시간이 현재 시간보다 늦어야 함
         require(_endAt > _startAt, "end at < start at"); //종료 시간이 시작 시간보다 늦어야 함
-        require(_endAt <= _startAt + 90 days, "The maximum allowed campaign duration is 90 days."); //캠페인 기간이 90일을 넘기지 않아야 함
+        require(_endAt <= block.timestamp + 90 days, "end at > max duration"); //캠페인 기간이 90일을 넘기지 않아야 함
 
         count += 1;
         campaigns[count] = Campaign({
@@ -77,8 +77,8 @@ contract Donation is DonationInterface {
 
     function cancel(uint256 _campaignId) external {
         Campaign memory campaign = campaigns[_campaignId];
-        require(msg.sender == campaign.creator, "Only creator can cancel");
-        require(block.timestamp < campaign.startAt, "Already Started");
+        require(msg.sender == campaign.creator, "not creator");
+        require(block.timestamp < campaign.startAt, "started");
 
         delete campaigns[_campaignId];
 
@@ -88,7 +88,7 @@ contract Donation is DonationInterface {
     function pledge(uint256 _campaignId, uint256 _amount) external {
         Campaign storage campaign = campaigns[_campaignId];
         require(block.timestamp >= campaign.startAt, "not started");
-        require(block.timestamp <= campaign.endAt, "Campaign ended");
+        require(!getIsEnded(_campaignId), "Campaign ended");
         require(_amount > 0, "Amount must be greater than zero");
 
         campaign.pledged += _amount;
@@ -102,7 +102,7 @@ contract Donation is DonationInterface {
     function unpledge(uint256 _campaignId, uint256 _amount) external {
         Campaign storage campaign = campaigns[_campaignId];
         require(_amount > 0, "Amount must be greater than zero");
-        require(block.timestamp <= campaign.endAt, "Campaign ended");
+        require(!getIsEnded(_campaignId), "Campaign ended");
 
         uint256 pledgedAmount = pledgedUserToAmount[_campaignId][msg.sender];
         require(pledgedAmount >= _amount, "Unpledge amount must be smaller than the amount you pledged");
