@@ -51,7 +51,7 @@ contract Donation is DonationInterface {
         uint32 _startAt,
         uint32 _endAt
     ) external {
-        require(_startAt > block.timestamp, "start at < now");
+        require(_startAt > (block.timestamp / 86400), "start at < now");
         require(_endAt > _startAt, "end at < start at");
         require(_endAt - _startAt < 90, "The maximum allowed campaign duration is 90 days.");
 
