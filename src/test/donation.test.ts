@@ -131,21 +131,210 @@ describe("Dao Token 테스트", () => {
   describe("cancel함수 테스트", () => {
     // 정상케이스 테스트
     // 1. 캠페인이 정상적으로 삭제되는가?
+    it("캠페인이 정상적으로 삭제되는가?", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      await donation.connect(users[0]).cancel(1);
+
+      const campaign = await donation.getCampaign(1);
+
+      expect(campaign.creator).to.equal("0x0000000000000000000000000000000000000000");
+      expect(campaign.target).to.equal("0x0000000000000000000000000000000000000000");
+      expect(campaign.title).to.equal("");
+      expect(campaign.description).to.equal("");
+      expect(campaign.goal.toString()).to.equal("0");
+      expect(campaign.pledged.toString()).to.equal("0");
+      expect(campaign.startAt).to.equal(0);
+      expect(campaign.endAt).to.equal(0);
+      expect(campaign.claimed).to.be.false;
+    });
     // 2 cancel 이벤트가 발생하였는가
+    it("cancel 이벤트가 발생하였는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const campaign = await donation.getCampaign(1);
+
+      await expect(donation.connect(users[0]).cancel(1)).to.emit(donation, "Cancel").withArgs(1);
+    });
     // 오류케이스 테스트
     // 1. creater 외 호출시 에러가 발생하는가
+    it("creater 외 호출시 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      await expect(donation.connect(users[1]).cancel(1)).to.revertedWith("Only creater can cancel");
+    });
     // 2. 시작시간이 현재시간보다 빠르면 에러가 발생하는가
+    it("시작시간이 현재시간보다 빠르면 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      await HardhatUtil.passNSeconds(100);
+
+      await expect(donation.connect(users[0]).cancel(1)).to.revertedWith("Already Started");
+    });
   });
   describe("pledge함수 테스트", () => {
     // 정상케이스 테스트
     // 1. 기부금액 ( pledged )가 정상적으로 업데이트 되는가?
+    it("기부금액 ( pledged )가 정상적으로 업데이트 되는가?", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const _amount = ethers.utils.parseUnits("10", 18);
+
+      await HardhatUtil.passNSeconds(12);
+
+      await daoToken.connect(admin).transfer(users[1].address, _amount);
+
+      await daoToken.connect(users[1]).approve(donation.address, _amount);
+      await donation.connect(users[1]).pledge(1, _amount);
+
+      const campaign = await donation.getCampaign(1);
+
+      expect(campaign.pledged.toString()).to.equal(_amount.toString());
+    });
     // 2. 캠페인 아이디와 기부자의 기부금액이 기록되는가?
+    it("캠페인 아이디와 기부자의 기부금액이 기록되는가?", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const _amount = ethers.utils.parseUnits("10", 18);
+
+      await HardhatUtil.passNSeconds(12);
+
+      await daoToken.connect(admin).transfer(users[1].address, _amount);
+
+      await daoToken.connect(users[1]).approve(donation.address, _amount);
+      await donation.connect(users[1]).pledge(1, _amount);
+
+      const campaign = await donation.getCampaign(1);
+
+      const pledgedAmount = await donation.pledgedUserToAmount(1, users[1].address);
+      expect(pledgedAmount.toString()).to.equal(_amount.toString());
+    });
     // 3. 기부자로부터 컨트랙트로 DAO 토큰이 전송되는갸?
+    it("기부자로부터 컨트랙트로 DAO 토큰이 전송되는갸?", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const _amount = ethers.utils.parseUnits("10", 18);
+
+      await HardhatUtil.passNSeconds(12);
+
+      await daoToken.connect(admin).transfer(users[1].address, _amount);
+
+      await daoToken.connect(users[1]).approve(donation.address, _amount);
+      await donation.connect(users[1]).pledge(1, _amount);
+
+      await expect((await daoToken.balanceOf(donation.address)).toString()).to.equal(_amount.toString());
+    });
     // 4. Pledge 이벤트가 발생하는가?
+    it("Pledge 이벤트가 발생하는가?", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const _amount = ethers.utils.parseUnits("10", 18);
+
+      await HardhatUtil.passNSeconds(12);
+
+      await daoToken.connect(admin).transfer(users[1].address, _amount);
+
+      await daoToken.connect(users[1]).approve(donation.address, _amount);
+
+      expect(await donation.connect(users[1]).pledge(1, _amount))
+        .to.emit(donation, "Pledge")
+        .withArgs(1, _amount);
+    });
     // 오류케이스 테스트
     // 1. 캠페인 시작 전 실행시 에러가 발생하는가
+    it("캠페인 시작 전 실행시 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 1000;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const _amount = ethers.utils.parseUnits("10", 18);
+
+      await HardhatUtil.passNSeconds(12);
+
+      await daoToken.connect(admin).transfer(users[1].address, _amount);
+
+      await daoToken.connect(users[1]).approve(donation.address, _amount);
+      await expect(donation.connect(users[1]).pledge(1, _amount)).to.revertedWith("not started");
+    });
     // 2. 종료된 캠페인에 기부시 에러가 발생하는가
+    it("종료된 캠페인에 기부시 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 10;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const _amount = ethers.utils.parseUnits("10", 18);
+
+      await HardhatUtil.passNSeconds(30);
+
+      await daoToken.connect(admin).transfer(users[1].address, _amount);
+
+      await daoToken.connect(users[1]).approve(donation.address, _amount);
+      await expect(donation.connect(users[1]).pledge(1, _amount)).to.revertedWith("Campaign ended");
+    });
     // 3. 기부금액이 0 원이면 에러가 발생하는가
+    it("기부금액이 0 원이면 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 1000;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+
+      const _amount = ethers.utils.parseUnits("10", 18);
+
+      await HardhatUtil.passNSeconds(30);
+
+      await daoToken.connect(admin).transfer(users[1].address, _amount);
+
+      await daoToken.connect(users[1]).approve(donation.address, _amount);
+      await expect(donation.connect(users[1]).pledge(1, 0)).to.revertedWith("Amount must be greater than zero");
+    });
   });
   describe("unpledge함수 테스트", () => {
     // 정상케이스 테스트
