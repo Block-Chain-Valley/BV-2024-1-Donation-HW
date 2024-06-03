@@ -5,7 +5,7 @@ import "./interface/DaoTokenInterface.sol";
 import "./interface/DaoInterface.sol";
 import "./interface/DonationInterface.sol";
 
-contract Donation {
+contract Donation is DonationInterface {
     ///////////// @notice 아래에 변수 추가 ////////////
 
     /// @notice Admin 주소
@@ -72,7 +72,7 @@ contract Donation {
             claimed: false
         });
 
-        emit Launch(count, msg.sender, _target, _title, _description, _goal, _startAt, _endAt);
+        emit Launch(count, campaigns[count]);
     }
 
     function cancel(uint256 _campaignId) external {
@@ -96,7 +96,7 @@ contract Donation {
 
         require(daoToken.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
 
-        emit Pledge(_campaignId, msg.sender, _amount);
+        emit Pledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
     function unpledge(uint256 _campaignId, uint256 _amount) external {
@@ -112,7 +112,7 @@ contract Donation {
 
         require(daoToken.transfer(msg.sender, _amount), "Transfer failed");
 
-        emit Unpledge(_campaignId, msg.sender, _amount);
+        emit Unpledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
     //2. onlyDao modifier 추가
@@ -125,7 +125,7 @@ contract Donation {
         campaign.claimed = true;
         require(daoToken.transfer(campaign.target, campaign.pledged), "Transfer failed");
 
-        emit Claim(_campaignId);
+        emit Claim(_campaignId, campaign.claimed, campaign.pledged);
     }
 
     function refund(uint256 _campaignId) external {
