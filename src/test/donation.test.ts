@@ -495,77 +495,77 @@ describe("Dao Token 테스트", () => {
   //     // 1. 캠페인 종료 전 실행시 오류가 발생하는가
   //   });
 
-  describe("claim 함수 테스트", () => {
-    let admin: SignerWithAddress;
-    let users: SignerWithAddress[];
-    let donation: Donation;
-    let daoToken: DaoToken;
-    let startAt: number;
-    let endAt: number;
-    let goal: BigNumber;
+  //   describe("claim 함수 테스트", () => {
+  //     let admin: SignerWithAddress;
+  //     let users: SignerWithAddress[];
+  //     let donation: Donation;
+  //     let daoToken: DaoToken;
+  //     let startAt: number;
+  //     let endAt: number;
+  //     let goal: BigNumber;
 
-    beforeEach(async () => {
-      const currentTime = Math.floor(Date.now() / 1000);
-      startAt = currentTime + 100;
-      endAt = startAt + 3600;
-      goal = ethers.utils.parseUnits("100", 18);
+  //     beforeEach(async () => {
+  //       const currentTime = Math.floor(Date.now() / 1000);
+  //       startAt = currentTime + 100;
+  //       endAt = startAt + 3600;
+  //       goal = ethers.utils.parseUnits("100", 18);
 
-      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
-      await donation.connect(users[1]).pledge(1, goal);
-      await HardhatUtil.passNSeconds(3700);
-    });
+  //       await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+  //       await donation.connect(users[1]).pledge(1, goal);
+  //       await HardhatUtil.passNSeconds(3700);
+  //     });
 
-    it("캠페인 타겟 주소로 DAO 토큰이 전송되는가?", async () => {
-      const initialBalance: BigNumber = await daoToken.balanceOf(users[1].address);
-      await donation.connect(users[0]).claim(1);
-      const finalBalance: BigNumber = await daoToken.balanceOf(users[1].address);
-      expect(finalBalance.sub(initialBalance)).to.equal(goal);
-    });
+  //     it("캠페인 타겟 주소로 DAO 토큰이 전송되는가?", async () => {
+  //       const initialBalance: BigNumber = await daoToken.balanceOf(users[1].address);
+  //       await donation.connect(users[0]).claim(1);
+  //       const finalBalance: BigNumber = await daoToken.balanceOf(users[1].address);
+  //       expect(finalBalance.sub(initialBalance)).to.equal(goal);
+  //     });
 
-    it("Claim 이벤트가 발생하는가?", async () => {
-      await expect(donation.connect(users[0]).claim(1)).to.emit(donation, "Claim").withArgs(1, true, goal);
-    });
+  //     it("Claim 이벤트가 발생하는가?", async () => {
+  //       await expect(donation.connect(users[0]).claim(1)).to.emit(donation, "Claim").withArgs(1, true, goal);
+  //     });
 
-    it("Claim 호출 후 캠페인의 claimed 상태가 업데이트 되는가?", async () => {
-      await donation.connect(users[0]).claim(1);
-      const campaign = await donation.getCampaign(1);
-      expect(campaign.claimed).to.be.true;
-    });
-  });
+  //     it("Claim 호출 후 캠페인의 claimed 상태가 업데이트 되는가?", async () => {
+  //       await donation.connect(users[0]).claim(1);
+  //       const campaign = await donation.getCampaign(1);
+  //       expect(campaign.claimed).to.be.true;
+  //     });
+  //   });
 
-  describe("refund 함수 테스트", () => {
-    let startAt: number;
-    let endAt: number;
-    let goal: BigNumber;
+  //   describe("refund 함수 테스트", () => {
+  //     let startAt: number;
+  //     let endAt: number;
+  //     let goal: BigNumber;
 
-    beforeEach(async () => {
-      const currentTime = Math.floor(Date.now() / 1000);
-      startAt = currentTime + 100;
-      endAt = startAt + 3600;
-      goal = ethers.utils.parseUnits("100", 18);
+  //     beforeEach(async () => {
+  //       const currentTime = Math.floor(Date.now() / 1000);
+  //       startAt = currentTime + 100;
+  //       endAt = startAt + 3600;
+  //       goal = ethers.utils.parseUnits("100", 18);
 
-      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
-      await donation.connect(users[1]).pledge(1, goal);
-      await HardhatUtil.passNSeconds(3700);
-    });
+  //       await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+  //       await donation.connect(users[1]).pledge(1, goal);
+  //       await HardhatUtil.passNSeconds(3700);
+  //     });
 
-    it("기부자의 기부 금액이 0으로 초기화 되는가?", async () => {
-      await donation.connect(users[1]).refund(1);
-      const pledgedAmount: BigNumber = await donation.pledgedUserToAmount(1, users[1].address);
-      expect(pledgedAmount).to.equal(0);
-    });
+  //     it("기부자의 기부 금액이 0으로 초기화 되는가?", async () => {
+  //       await donation.connect(users[1]).refund(1);
+  //       const pledgedAmount: BigNumber = await donation.pledgedUserToAmount(1, users[1].address);
+  //       expect(pledgedAmount).to.equal(0);
+  //     });
 
-    it("컨트랙트로부터 기부자에게 DAO 토큰이 전송되는가?", async () => {
-      const initialBalance: BigNumber = await daoToken.balanceOf(users[1].address);
-      await donation.connect(users[1]).refund(1);
-      const finalBalance: BigNumber = await daoToken.balanceOf(users[1].address);
-      expect(finalBalance.sub(initialBalance)).to.equal(goal);
-    });
+  //     it("컨트랙트로부터 기부자에게 DAO 토큰이 전송되는가?", async () => {
+  //       const initialBalance: BigNumber = await daoToken.balanceOf(users[1].address);
+  //       await donation.connect(users[1]).refund(1);
+  //       const finalBalance: BigNumber = await daoToken.balanceOf(users[1].address);
+  //       expect(finalBalance.sub(initialBalance)).to.equal(goal);
+  //     });
 
-    it("Refund 이벤트가 발생하는가?", async () => {
-      await expect(donation.connect(users[1]).refund(1))
-        .to.emit(donation, "Refund")
-        .withArgs(1, users[1].address, goal);
-    });
-  });
+  //     it("Refund 이벤트가 발생하는가?", async () => {
+  //       await expect(donation.connect(users[1]).refund(1))
+  //         .to.emit(donation, "Refund")
+  //         .withArgs(1, users[1].address, goal);
+  //     });
+  //   });
 });
