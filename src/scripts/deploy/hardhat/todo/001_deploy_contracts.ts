@@ -16,13 +16,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     autoMine: true,
   });
 
-  // const DonationContract = await deploy("Donation", {
-  //   from: developer.address,
-  //   contract: "Donation",
-  //   args: [DaoTokenContract.address],
-  //   log: true,
-  //   autoMine: true,
-  // });
+  const DonationContract = await deploy("Donation", {
+    from: developer.address,
+    contract: "Donation",
+    args: [DaoTokenContract.address],
+    log: true,
+    autoMine: true,
+  });
 
   // const DaoContract = await deploy("Dao", {
   //   from: developer.address,
