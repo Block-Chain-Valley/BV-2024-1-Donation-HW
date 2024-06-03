@@ -61,30 +61,72 @@ describe("Dao Token 테스트", () => {
       expect(await donation.count()).to.equal(1);
     });
     // 2. campaign 객체가 정상적으로 반영되었는가
-    // it("campaign 객체가 정상적으로 반영되었는가", async () => {
-    //   const currentTime = Math.floor(Date.now() / 1000);
-    //   const startAt = currentTime + 10;
-    //   const endAt = startAt + 3600;
-    //   const goal = ethers.utils.parseUnits("1000", 18);
+    it("campaign 객체가 정상적으로 반영되었는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
 
-    //   await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
+      await donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt);
 
-    //   const campaign = await donation.getCampaign(0);
+      const campaign = await donation.getCampaign(1);
 
-    //   expect(campaign.creator).to.equal(users[0].address);
-    //   expect(campaign.target).to.equal(users[1].address);
-    //   expect(campaign.title).to.equal("test");
-    //   expect(campaign.description).to.equal("test description");
-    //   expect(campaign.goal.toString()).to.equal(goal.toString());
-    //   expect(campaign.startAt).to.equal(startAt);
-    //   expect(campaign.endAt).to.equal(endAt);
-    //   expect(campaign.claimed).to.be.false;
-    // });
+      expect(campaign.creator).to.equal(users[0].address);
+      expect(campaign.target).to.equal(users[1].address);
+      expect(campaign.title).to.equal("test");
+      expect(campaign.description).to.equal("test description");
+      expect(campaign.goal.toString()).to.equal(goal.toString());
+      expect(campaign.startAt).to.equal(startAt);
+      expect(campaign.endAt).to.equal(endAt);
+      expect(campaign.claimed).to.be.false;
+    });
     // 3. launch 이벤트가 발생하였는가
+    it("launch 이벤트가 발생하였는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      await expect(
+        donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt),
+      )
+        .to.emit(donation, "Launch")
+        .withArgs(1, await donation.getCampaign(1));
+    });
     // 오류케이스 테스트
     // 1. 시작시간이 현재시간보다 빠르면 에러가 발생하는가
+    it("시작시간이 현재시간보다 빠르면 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime - 10;
+      const endAt = startAt + 3600;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      expect(
+        donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt),
+      ).to.be.revertedWith("start at < now");
+    });
     // 2. 종료시간이 시작시간보다 빠르면 에러가 발생하는가
+    it("종료시간이 시작시간보다 빠르면 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 8;
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      expect(
+        donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt),
+      ).to.be.revertedWith("end at < start at");
+    });
     // 3. 캠페인 기간이 90일을 넘으면 에러가 발생하는가
+    it("캠페인 기간이 90일을 넘으면 에러가 발생하는가", async () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const startAt = currentTime + 10;
+      const endAt = startAt + 2678400; // 31 days
+      const goal = ethers.utils.parseUnits("1000", 18);
+
+      expect(
+        donation.connect(users[0]).launch(users[1].address, "test", "test description", goal, startAt, endAt),
+      ).to.be.revertedWith("The maximum allowed campaign duration is 90 days.");
+    });
   });
   describe("cancel함수 테스트", () => {
     // 정상케이스 테스트
