@@ -16,8 +16,6 @@ describe("Dao Token 테스트", () => {
 
   /* 컨트랙트 객체 */
   let daoToken: DaoToken;
-  let dao: Dao;
-  let donation: Donation;
 
   /* 테스트 스냅샷 */
   let initialSnapshotId: number;
@@ -43,8 +41,6 @@ describe("Dao Token 테스트", () => {
 
   it("Hardhat 환경 배포 테스트", () => {
     expect(daoToken.address).to.not.be.undefined;
-    // expect(dao.address).to.not.be.undefined;
-    // expect(donation.address).to.not.be.undefined;
   });
 
   describe("DaoToken 초기화 테스트", () => {
