@@ -25,7 +25,7 @@ describe("Dao Token 테스트", () => {
 
   before(async () => {
     /* 테스트에 필요한 컨트랙트 및 Signer 정보를 불러오는 함수 */
-    ({ admin, users, daoToken } = await setup()); // , dao, donation 추가
+    ({ admin, users, daoToken, donation } = await setup()); // , dao, donation 추가
     initialSnapshotId = await network.provider.send("evm_snapshot");
   });
 
@@ -44,7 +44,7 @@ describe("Dao Token 테스트", () => {
   it("Hardhat 환경 배포 테스트", () => {
     expect(daoToken.address).to.not.be.undefined;
     // expect(dao.address).to.not.be.undefined;
-    // expect(donation.address).to.not.be.undefined;
+    expect(donation.address).to.not.be.undefined;
   });
 
   describe("DaoToken 초기화 테스트", () => {
