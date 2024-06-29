@@ -120,7 +120,8 @@ contract Donation is DonationInterface {
         emit Unpledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
-    function claim(uint256 _campaignId) external onlyDao {
+    // function claim(uint256 _campaignId) external onlyDao {
+    function claim(uint256 _campaignId) external {
         require(getIsEnded(_campaignId), "Campaign not ended");
 
         Campaign storage campaign = campaigns[_campaignId];

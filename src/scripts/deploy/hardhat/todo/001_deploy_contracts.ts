@@ -42,23 +42,23 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     autoMine: true,
   });
 
-  // const DaoContract = await deploy("Dao", {
-  //   from: developer.address,
-  //   contract: "Dao",
-  //   proxy: {
-  //     execute: {
-  //       init: {
-  //         methodName: "initialize",
-  //         args: [DaoTokenContract.address, DonationContract.address],
-  //       },
-  //     },
-  //   },
-  //   log: true,
-  //   autoMine: true,
-  // });
+  const DaoContract = await deploy("Dao", {
+    from: developer.address,
+    contract: "Dao",
+    proxy: {
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: [DaoTokenContract.address, DonationContract.address],
+        },
+      },
+    },
+    log: true,
+    autoMine: true,
+  });
 
-  // const donation = await ethers.getContractAt("Donation", DonationContract.address);
-  // await donation.connect(developer).setDaoAddress(DaoContract.address);
+  const donation = await ethers.getContractAt("Donation", DonationContract.address);
+  await donation.connect(developer).setDaoAddress(DaoContract.address);
 };
 
 export default func;

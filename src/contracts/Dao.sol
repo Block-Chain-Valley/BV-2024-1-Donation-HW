@@ -127,17 +127,30 @@ contract Dao is DaoInterface, Initializable {
 
     function handleDaoMembership(address _user, bool _approve) external onlyAdmin {
         if (_approve) {
-            membershipRequestStatus[msg.sender] = MembershipRequestStatusCode.APPROVED;
-            daoMemberList.push(msg.sender);
-            isDaoMember[msg.sender] = true;
-            emit DaoMembershipApproved(msg.sender, "User has been approved as a DAO member");
+            membershipRequestStatus[_user] = MembershipRequestStatusCode.APPROVED;
+            daoMemberList.push(_user);
+            isDaoMember[_user] = true;
+            emit DaoMembershipApproved(_user, "User has been approved as a DAO member");
         } else {
-            membershipRequestStatus[msg.sender] = MembershipRequestStatusCode.REJECTED;
-            emit DaoMembershipApproved(msg.sender, "User has been rejected as a DAO member");
+            membershipRequestStatus[_user] = MembershipRequestStatusCode.REJECTED;
+            emit DaoMembershipRejected(_user, "User has been rejected as a DAO member");
         }
     }
 
-    function removeDaoMembership(address _user) external {}
+    function removeDaoMembership(address _user) external {
+        require(isDaoMember[_user], "User is not a DAO member");
+
+        isDaoMember[_user] = false;
+        for (uint256 i = 0; i < daoMemberList.length; i++) {
+            if (daoMemberList[i] == _user) {
+                daoMemberList[i] = daoMemberList[daoMemberList.length - 1];
+                daoMemberList.pop();
+                break;
+            }
+        }
+
+        emit DaoMembershipRemoved(_user, "User has been removed from DAO membership");
+    }
 
     ///////////// @notice 아래에 set함수 & get함수 추가 ////////////
 
