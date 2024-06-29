@@ -23,6 +23,8 @@ interface DaoInterface {
 
     function getDaoList() external view returns (address[] memory);
 
+    function checkDaoMember() external view returns (bool);
+
     event VoteStarted(uint256 indexed campaignId, uint256 goalAmount, uint256 totalAmount);
 
     event Voted(uint256 indexed campaignId, address voter, bool agree);

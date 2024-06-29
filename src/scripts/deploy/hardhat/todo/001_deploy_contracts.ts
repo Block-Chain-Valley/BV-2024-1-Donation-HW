@@ -1,4 +1,5 @@
 import { hardhatInfo } from "@constants";
+import { DaoToken } from "@typechains";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -20,6 +21,23 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     from: developer.address,
     contract: "Donation",
     args: [DaoTokenContract.address],
+    log: true,
+    autoMine: true,
+  });
+
+  const initializerParams = [DonationContract.address, DaoTokenContract.address];
+
+  await deploy("Dao", {
+    from: developer.address,
+    contract: "Dao",
+    proxy: {
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: initializerParams,
+        },
+      },
+    },
     log: true,
     autoMine: true,
   });

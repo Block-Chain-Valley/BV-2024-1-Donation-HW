@@ -26,22 +26,32 @@ contract Donation is DonationInterface {
     mapping(uint256 => mapping(address => uint256)) public pledgedUserToAmount;
 
     ///////////// @notice 아래에 생성자 및 컨트랙트 주소 설정 ////////////
+
     constructor(address _daoToken) {
         admin = msg.sender;
         daoToken = DaoTokenInterface(_daoToken);
     }
 
     /// @notice 관리자 및 DAO Token 컨트랙트 주소 설정
+    DaoInterface public dao;
 
     ///////////// @notice 아래에 modifier 추가 ////////////
 
     /// @notice 관리자만 접근 가능하도록 설정
     modifier onlyAdmin() {
-        require(msg.sender == admin, "Admin only");
+        require(msg.sender == admin, "Only admin can perform this action");
         _;
     }
 
     /// @notice DAO 회원만 접근 가능하도록 설정
+    modifier onlyDao() {
+        require(dao.checkDaoMember(), "Only DAO contract can perform this action");
+        _;
+    }
+
+    function setDaoAddress(address _daoAddress) external onlyAdmin {
+        dao = DaoInterface(_daoAddress);
+    }
 
     function launch(
         address _target,
@@ -51,9 +61,9 @@ contract Donation is DonationInterface {
         uint32 _startAt,
         uint32 _endAt
     ) external {
-        require(_startAt > (block.timestamp / 86400), "start at < now");
-        require(_endAt > _startAt, "end at < start at");
-        require(_endAt - _startAt < 90, "The maximum allowed campaign duration is 90 days.");
+        require(_startAt >= block.timestamp, "start at < now");
+        require(_endAt >= _startAt, "end at < start at");
+        require(_endAt <= block.timestamp + 90 days, "end at > max duration");
 
         count++;
         campaigns[count] = Campaign({
@@ -67,50 +77,53 @@ contract Donation is DonationInterface {
             endAt: _endAt,
             claimed: false
         });
+
         emit Launch(count, campaigns[count]);
     }
 
     function cancel(uint256 _campaignId) external {
         Campaign memory campaign = campaigns[_campaignId];
-        require(msg.sender == campaign.creator, "Only creator can cancel");
-        require(campaign.startAt > block.timestamp, "Already Started");
+        require(msg.sender == campaign.creator, "not creator");
+        require(campaign.startAt > block.timestamp, "started");
 
         delete campaigns[_campaignId];
         emit Cancel(_campaignId);
     }
 
     function pledge(uint256 _campaignId, uint256 _amount) external {
-        Campaign memory campaign = campaigns[_campaignId];
+        require(address(dao) != address(0), "Dao address not set");
+        Campaign storage campaign = campaigns[_campaignId];
         require(block.timestamp >= campaign.startAt, "not started");
         require(!getIsEnded(_campaignId), "Campaign ended");
         require(_amount > 0, "Amount must be greater than zero");
 
-        campaigns[_campaignId].pledged += _amount;
+        campaign.pledged += _amount;
         pledgedUserToAmount[_campaignId][msg.sender] += _amount;
-
         daoToken.transferFrom(msg.sender, address(this), _amount);
-        emit Pledge(_campaignId, msg.sender, _amount, pledgedUserToAmount[_campaignId][msg.sender]);
+
+        emit Pledge(_campaignId, msg.sender, _amount, campaign.pledged);
+
+        if (campaign.pledged >= campaign.goal) {
+            dao.startVote(_campaignId);
+        }
     }
 
     function unpledge(uint256 _campaignId, uint256 _amount) external {
-        Campaign memory campaign = campaigns[_campaignId];
+        Campaign storage campaign = campaigns[_campaignId];
         require(_amount > 0, "Amount must be greater than zero");
         require(!getIsEnded(_campaignId), "Campaign ended");
-        require(
-            pledgedUserToAmount[_campaignId][msg.sender] >= _amount,
-            "Unpledge amount must be smaller than the amount you pledged"
-        );
-        campaigns[_campaignId].pledged -= _amount;
-        pledgedUserToAmount[_campaignId][msg.sender] -= _amount;
 
+        campaign.pledged -= _amount;
+        pledgedUserToAmount[_campaignId][msg.sender] -= _amount;
         daoToken.transfer(msg.sender, _amount);
-        emit Unpledge(_campaignId, msg.sender, _amount, pledgedUserToAmount[_campaignId][msg.sender]);
+
+        emit Unpledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
-    //2. onlyDao modifier 추가
-    function claim(uint256 _campaignId) external {
+    function claim(uint256 _campaignId) external onlyDao {
         require(getIsEnded(_campaignId), "Campaign not ended");
-        Campaign memory campaign = campaigns[_campaignId];
+
+        Campaign storage campaign = campaigns[_campaignId];
         require(!campaign.claimed, "claimed");
 
         daoToken.transfer(campaign.target, campaign.pledged);
@@ -121,8 +134,8 @@ contract Donation is DonationInterface {
 
     function refund(uint256 _campaignId) external {
         require(getIsEnded(_campaignId), "Campaign not ended");
-        uint256 bal = pledgedUserToAmount[_campaignId][msg.sender];
 
+        uint256 bal = pledgedUserToAmount[_campaignId][msg.sender];
         pledgedUserToAmount[_campaignId][msg.sender] = 0;
         daoToken.transfer(msg.sender, bal);
 
