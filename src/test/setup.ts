@@ -9,8 +9,8 @@ export const setup = async () => {
   await deployments.fixture(["DaoToken", "Donation", "Dao"]);
   const contracts = {
     daoToken: await ethers.getContract<DaoToken>("DaoToken"),
-    // donation: await ethers.getContract<Donation>("Donation"),
-    // dao: await ethers.getContract<Dao>("Dao"),
+    donation: await ethers.getContract<Donation>("Donation"),
+    dao: await ethers.getContract<Dao>("Dao"),
   };
 
   return {
