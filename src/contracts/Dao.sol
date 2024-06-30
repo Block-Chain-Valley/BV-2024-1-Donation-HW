@@ -77,17 +77,95 @@ contract Dao is DaoInterface, Initializable {
         daoToken = _daoToken;
     }
 
-    function startVote(uint256 _campaignId) external {}
+    function startVote(uint256 _campaignId) external {
+        require(!voteInProgress[_campaignId], "A vote is already in progress for this campaign.");
 
-    function vote(uint256 _campaignId, bool agree) public {}
+        uint256 goalAmount = donation.getCampaignGoal(_campaignId);
+        uint256 totalAmount = donation.getCampaignTotalAmount(_campaignId);
 
-    function voteEnd(uint256 _campaignId) internal {}
+        voteCountYes[_campaignId] = 0;
+        voteCountNo[_campaignId] = 0;
+        voteInProgress[_campaignId] = true;
 
-    function requestDaoMembership() external {}
+        emit VoteStarted(_campaignId, goalAmount, totalAmount);
+    }
 
-    function handleDaoMembership(address _user, bool _approve) external {}
+    function vote(uint256 _campaignId, bool _agree) public onlyDaoMember {
+        require(voteInProgress[_campaignId], "No vote in progress for this campaign.");
+        require(!hasVoted[_campaignId][msg.sender], "You have already voted.");
 
-    function removeDaoMembership(address _user) external {}
+        hasVoted[_campaignId][msg.sender] = true;
+        _agree ? voteCountYes[_campaignId]++ : voteCountNo[_campaignId]++;
+
+        if (voteCountYes[_campaignId] + voteCountNo[_campaignId] == daoMemberList.length) {
+            voteEnd(_campaignId);
+        }
+
+        emit Voted(_campaignId, msg.sender, _agree);
+    }
+
+    function voteEnd(uint256 _campaignId) internal {
+        require(voteInProgress[_campaignId], "No vote in progress for this campaign.");
+
+        uint256 agreePercentage = (voteCountYes[_campaignId] * 1e18) / daoMemberList.length;
+
+        voteInProgress[_campaignId] = false;
+
+        bool result;
+        string memory message;
+
+        if (agreePercentage < 70 * 1e16) {
+            result = false;
+            message = "The campaign was declined for claim.";
+        } else {
+            donation.claim(_campaignId);
+            result = true;
+            message = "The campaign has been approved for claim.";
+        }
+
+        emit VoteEnded(_campaignId, result, agreePercentage, message);
+    }
+
+    function requestDaoMembership() external {
+        require(!isDaoMember[msg.sender], "User is already a Dao member.");
+        require(daoToken.balanceOf(msg.sender) >= daoMembershipAmount, "Insufficient Dao tokens");
+
+        membershipRequestStatus[msg.sender] = MembershipRequestStatusCode.PENDING;
+
+        emit DaoMembershipRequested(msg.sender, "User has requested DAO membership");
+    }
+
+    function handleDaoMembership(address _user, bool _approve) external {
+        require(membershipRequestStatus[_user] == MembershipRequestStatusCode.PENDING, "No pending request");
+
+        if (_approve) {
+            membershipRequestStatus[_user] = MembershipRequestStatusCode.APPROVED;
+            isDaoMember[_user] = true;
+            daoMemberList.push(_user);
+
+            emit DaoMembershipApproved(_user, "User has been approved as a Dao member");
+        } else {
+            membershipRequestStatus[_user] = MembershipRequestStatusCode.REJECTED;
+            emit DaoMembershipRejected(_user, "User has been rejected as a Dao member");
+        }
+    }
+
+    function removeDaoMembership(address _user) external {
+        require(isDaoMember[_user], "User is not a Dao member.");
+
+        isDaoMember[_user] = false;
+
+        for (uint256 index = 0; index < daoMemberList.length; index++) {
+            if (daoMemberList[index] == _user) {
+                daoMemberList[index] = daoMemberList[daoMemberList.length - 1];
+                daoMemberList.pop();
+
+                break;
+            }
+        }
+
+        emit DaoMembershipRemoved(_user, "User has been removed from Dao membership");
+    }
 
     ///////////// @notice 아래에 set함수 & get함수 추가 ////////////
     function getMembershipRequests() external view onlyAdmin returns (address[] memory) {

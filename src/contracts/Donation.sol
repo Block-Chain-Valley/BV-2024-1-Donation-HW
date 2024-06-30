@@ -18,6 +18,9 @@ contract Donation is DonationInterface {
     /// @notice DAO 토큰 컨트랙트 주소
     DaoTokenInterface public daoToken;
 
+    /// @notice DAO 컨트랙트 주소
+    DaoInterface public dao;
+
     ///////////// @notice 아래에 매핑 추가 ////////////
 
     /// @notice 캠페인 아이디 -> 캠페인 구조체
@@ -25,6 +28,8 @@ contract Donation is DonationInterface {
 
     /// @notice 캠페인 아이디 -> 사용자 주소 -> 기부 금액
     mapping(uint256 => mapping(address => uint256)) public pledgedUserToAmount;
+
+    mapping(address => bool) public isDaoMember;
 
     ///////////// @notice 아래에 생성자 및 컨트랙트 주소 설정 ////////////
 
@@ -34,15 +39,24 @@ contract Donation is DonationInterface {
         daoToken = DaoTokenInterface(daoTokenAddr);
     }
 
+    /// @notice Dao 주소를 세팅하는 함수
+    function setDaoAddress(address daoAddr) external onlyAdmin {
+        dao = DaoInterface(daoAddr);
+    }
+
     ///////////// @notice 아래에 modifier 추가 ////////////
 
     /// @notice 관리자만 접근 가능하도록 설정
     modifier onlyAdmin() {
-        require(admin == msg.sender);
+        require(admin == msg.sender, "Only admin can perform this action");
         _;
     }
 
     /// @notice DAO 회원만 접근 가능하도록 설정
+    modifier onlyDaoMember() {
+        require(isDaoMember[msg.sender], "Only Dao members can perform this action");
+        _;
+    }
 
     function launch(
         address _target,
@@ -84,6 +98,7 @@ contract Donation is DonationInterface {
 
     function pledge(uint256 _campaignId, uint256 _amount) external {
         require(_amount > 0, "Amount must be greater than zero");
+        require(address(dao) != address(0), "Dao address not set");
 
         Campaign storage campaign = campaigns[_campaignId];
 
@@ -98,6 +113,10 @@ contract Donation is DonationInterface {
 
         pledgedUserToAmount[_campaignId][msg.sender] += _amount;
         daoToken.transferFrom(msg.sender, address(this), _amount);
+
+        if (campaign.pledged >= campaign.goal) {
+            dao.startVote(_campaignId);
+        }
 
         emit Pledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
@@ -117,8 +136,7 @@ contract Donation is DonationInterface {
         emit Unpledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
-    //2. onlyDao modifier 추가
-    function claim(uint256 _campaignId) external {
+    function claim(uint256 _campaignId) external onlyDaoMember {
         require(getIsEnded(_campaignId), "Campaign not ended");
 
         Campaign storage campaign = campaigns[_campaignId];
