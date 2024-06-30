@@ -26,17 +26,28 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     autoMine: true,
   });
 
-  // const DaoContract = await deploy("Dao", {
+  const initializeParams = [DaoTokenContract.address, DonationContract.address];
+
+  await deploy("Dao", {
+    from: developer.address,
+    contract: "Dao",
+    proxy: {
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: initializeParams,
+        },
+      },
+    },
+    log: true,
+    autoMine: true,
+  });
+
+  // 이후 업그레이드 시 사용
+  // await deploy("Dao", {
   //   from: developer.address,
   //   contract: "Dao",
-  //   proxy: {
-  //     execute: {
-  //       init: {
-  //         methodName: "initialize",
-  //         args: [DaoTokenContract.address, DonationContract.address],
-  //       },
-  //     },
-  //   },
+  //   proxy: true,
   //   log: true,
   //   autoMine: true,
   // });
