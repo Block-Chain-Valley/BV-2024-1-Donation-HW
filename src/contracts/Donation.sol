@@ -45,7 +45,7 @@ contract Donation is DonationInterface {
 
     /// @notice DAO 회원만 접근 가능하도록 설정
     modifier onlyDao() {
-        require(dao.checkDaoMember(), "Only DAO contract can perform this action");
+        require(dao.checkDaoMember(msg.sender), "Only DAO contract can perform this action");
         _;
     }
 
@@ -120,8 +120,7 @@ contract Donation is DonationInterface {
         emit Unpledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
-    // function claim(uint256 _campaignId) external onlyDao {
-    function claim(uint256 _campaignId) external {
+    function claim(uint256 _campaignId) external onlyDao {
         require(getIsEnded(_campaignId), "Campaign not ended");
 
         Campaign storage campaign = campaigns[_campaignId];

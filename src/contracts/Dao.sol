@@ -161,7 +161,8 @@ contract Dao is DaoInterface, Initializable {
     function getDaoList() external view onlyAdmin returns (address[] memory) {
         return daoMemberList;
     }
-    function checkDaoMember() external view returns (bool) {
-        return isDaoMember[msg.sender];
+
+    function checkDaoMember(address _user) external view returns (bool) {
+        return isDaoMember[_user];
     }
 }

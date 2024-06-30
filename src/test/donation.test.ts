@@ -14,6 +14,7 @@ describe("Donation 테스트", () => {
   /* 컨트랙트 객체 */
   let daoToken: DaoToken;
   let donation: Donation;
+  let dao: Dao;
 
   /* 테스트 스냅샷 */
   let initialSnapshotId: number;
@@ -21,7 +22,7 @@ describe("Donation 테스트", () => {
 
   before(async () => {
     /* 테스트에 필요한 컨트랙트 및 Signer 정보를 불러오는 함수 */
-    ({ admin, users, daoToken, donation } = await setup());
+    ({ admin, users, daoToken, donation, dao } = await setup());
     initialSnapshotId = await network.provider.send("evm_snapshot");
   });
 
@@ -40,6 +41,7 @@ describe("Donation 테스트", () => {
   it("Hardhat 환경 배포 테스트", () => {
     expect(daoToken.address).to.not.be.undefined;
     expect(donation.address).to.not.be.undefined;
+    expect(dao.address).to.not.be.undefined;
   });
 
   describe("캠페인 생성(Launch) 테스트", () => {
@@ -153,6 +155,16 @@ describe("Donation 테스트", () => {
       await HardhatUtil.mineNBlocks(1);
     });
 
+    it("dao 주소가 설정되었는지 확인", async () => {
+      await donation.setDaoAddress("0x0000000000000000000000000000000000000000");
+
+      const amount = HardhatUtil.ToETH(1);
+      // await daoToken.transfer(users[1].address, amount);
+      // await daoToken.connect(users[1]).approve(donation.address, amount);
+
+      await expect(donation.connect(users[1]).pledge(1, amount)).to.be.revertedWith("Dao address not set");
+    });
+
     it("pledge 함수가 캠페인이 종료된 경우 실패하는지 확인", async () => {
       const amount = HardhatUtil.ToETH(1);
       await daoToken.transfer(users[1].address, amount);
@@ -205,7 +217,7 @@ describe("Donation 테스트", () => {
       await donation.connect(users[1]).pledge(1, amount);
     });
 
-    it("unpledge 함수가 0 이상의 금액을 기부 취소하는지 확인", async () => {
+    it("unpledge 함수가 0 이하의 금액을 기부 취소하는지 확인", async () => {
       const amount = HardhatUtil.ToETH(0);
 
       await expect(donation.connect(users[1]).unpledge(1, amount)).to.be.revertedWith(
@@ -249,6 +261,12 @@ describe("Donation 테스트", () => {
       await daoToken.transfer(users[1].address, amount);
       await daoToken.connect(users[1]).approve(donation.address, amount);
       await donation.connect(users[1]).pledge(1, amount);
+      await dao.connect(admin).handleDaoMembership(users[0].address, true);
+    });
+
+    it("claim 함수가 DAO 멤버의 호출에만 실행되는지 확인", async () => {
+      await dao.connect(admin).removeDaoMembership(users[0].address);
+      await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("Only DAO contract can perform this action");
     });
 
     it("claim 함수가 캠페인이 종료되지 않은 경우 실패하는지 확인", async () => {
