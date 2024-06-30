@@ -25,6 +25,8 @@ contract Donation is DonationInterface {
     /// @notice 캠페인 아이디 -> 사용자 주소 -> 기부 금액
     mapping(uint256 => mapping(address => uint256)) public pledgedUserToAmount;
 
+    mapping(address => bool) public isDaoMember;
+
     ///////////// @notice 아래에 생성자 및 컨트랙트 주소 설정 ////////////
 
     /// @notice 관리자 및 DAO Token 컨트랙트 주소 설정
@@ -37,13 +39,13 @@ contract Donation is DonationInterface {
 
     /// @notice 관리자만 접근 가능하도록 설정
     modifier onlyAdmin() {
-        require(msg.sender == admin, "Not admin");
+        require(msg.sender == admin, "Only admin can perform this action");
         _;
     }
 
     /// @notice DAO 회원만 접근 가능하도록 설정
     modifier onlyDaoMember() {
-        require(daoToken.balanceOf(msg.sender) > 0, "Not a DAO member");
+        require(isDaoMember[msg.sender], "Only Dao members can perform this action");
         _;
     }
 
