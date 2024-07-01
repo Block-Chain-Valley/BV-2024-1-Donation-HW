@@ -43,17 +43,16 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     autoMine: true,
   });
 
-  // 이후 업그레이드 시 사용
-  // await deploy("Dao", {
-  //   from: developer.address,
-  //   contract: "Dao",
-  //   proxy: true,
-  //   log: true,
-  //   autoMine: true,
-  // });
+  const DaoContract = await deploy("Dao", {
+    from: developer.address,
+    contract: "Dao",
+    proxy: true,
+    log: true,
+    autoMine: true,
+  });
 
-  // const donation = await ethers.getContractAt("Donation", DonationContract.address);
-  // await donation.connect(developer).setDaoAddress(DaoContract.address);
+  const donation = await ethers.getContractAt("Donation", DonationContract.address);
+  await donation.connect(developer).setDaoAddress(DaoContract.address);
 };
 
 export default func;
