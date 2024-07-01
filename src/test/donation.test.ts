@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
 import { setup } from "./setup";
-import { DaoToken, Donation } from "@typechains";
+import { DaoToken, Donation, Dao } from "@typechains";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { HardhatUtil } from "./lib/hardhat_utils";
@@ -14,6 +14,7 @@ describe("Donation 테스트", () => {
   /* 컨트랙트 객체 */
   let daoToken: DaoToken;
   let donation: Donation;
+  let dao: Dao;
 
   /* 테스트 스냅샷 */
   let initialSnapshotId: number;
@@ -21,7 +22,7 @@ describe("Donation 테스트", () => {
 
   before(async () => {
     /* 테스트에 필요한 컨트랙트 및 Signer 정보를 불러오는 함수 */
-    ({ admin, users, daoToken, donation } = await setup());
+    ({ admin, users, daoToken, donation, dao } = await setup());
     initialSnapshotId = await network.provider.send("evm_snapshot");
   });
 
@@ -40,6 +41,7 @@ describe("Donation 테스트", () => {
   it("Hardhat 환경 배포 테스트", () => {
     expect(daoToken.address).to.not.be.undefined;
     expect(donation.address).to.not.be.undefined;
+    expect(dao.address).to.not.be.undefined;
   });
 
   describe("Launch 함수 테스트", () => {
@@ -293,11 +295,20 @@ describe("Donation 테스트", () => {
       await donation.connect(users[1]).pledge(1, amount);
     });
 
+    it("claim 함수가 DAO 멤버의 호출에만 실행되는지 확인", async () => {
+      await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("Only DAO contract can perform this action");
+    });
+
     it("캠페인이 종료되지 않은 경우 기부금 수령에 실패하는지 확인", async () => {
+      await dao.connect(users[0]).requestDaoMembership();
+      await dao.connect(admin).handleDaoMembership(users[0].address, true);
       await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("Campaign not ended");
     });
 
     it("이미 기부금 수령된 캠페인에서 호출된 경우 실패하는지 확인", async () => {
+      await dao.connect(users[0]).requestDaoMembership();
+      await dao.connect(admin).handleDaoMembership(users[0].address, true);
+
       const endTime = (await donation.campaigns(1)).endAt;
       await HardhatUtil.setNextBlockTimestamp(endTime);
 
@@ -309,6 +320,9 @@ describe("Donation 테스트", () => {
       const endTime = (await donation.campaigns(1)).endAt;
 
       await HardhatUtil.setNextBlockTimestamp(endTime);
+
+      await dao.connect(users[0]).requestDaoMembership();
+      await dao.connect(admin).handleDaoMembership(users[0].address, true);
       await donation.connect(users[0]).claim(1);
 
       const campaign = await donation.campaigns(1);
@@ -319,6 +333,10 @@ describe("Donation 테스트", () => {
       const endTime = (await donation.campaigns(1)).endAt;
 
       await HardhatUtil.setNextBlockTimestamp(endTime);
+
+      await dao.connect(users[0]).requestDaoMembership();
+      await dao.connect(admin).handleDaoMembership(users[0].address, true);
+
       await expect(donation.connect(users[0]).claim(1))
         .to.emit(donation, "Claim")
         .withArgs(1, true, HardhatUtil.ToETH(10));
