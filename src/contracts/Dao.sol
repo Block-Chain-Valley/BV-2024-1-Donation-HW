@@ -126,6 +126,10 @@ contract Dao is DaoInterface, Initializable {
         emit VoteEnded(_campaignId, result, agreePercentage, message);
     }
 
+    function setDaoMembershipAmount(uint256 _amount) external onlyAdmin {
+        daoMembershipAmount = _amount;
+    }
+
     function requestDaoMembership() external {
         require(!isDaoMember[msg.sender], "User is already a Dao member.");
         require(daoToken.balanceOf(msg.sender) >= daoMembershipAmount, "Insufficient Dao tokens");
@@ -135,7 +139,7 @@ contract Dao is DaoInterface, Initializable {
         emit DaoMembershipRequested(msg.sender, "User has requested DAO membership");
     }
 
-    function handleDaoMembership(address _user, bool _approve) external {
+    function handleDaoMembership(address _user, bool _approve) external onlyAdmin {
         require(membershipRequestStatus[_user] == MembershipRequestStatusCode.PENDING, "No pending request");
 
         if (_approve) {
