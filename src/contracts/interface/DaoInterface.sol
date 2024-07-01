@@ -13,6 +13,8 @@ interface DaoInterface {
 
     function vote(uint256 _campaignId, bool _agree) external;
 
+    function setDaoMembershipAmount(uint256 _amount) external;
+
     function requestDaoMembership() external;
 
     function handleDaoMembership(address _user, bool _approve) external;
