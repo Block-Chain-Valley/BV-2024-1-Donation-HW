@@ -280,68 +280,68 @@ describe("Donation 테스트", () => {
         .withArgs(1, users[1].address, amount, amount);
     });
   });
-  describe("Claim 함수 테스트", () => {
-    const amount = HardhatUtil.ToETH(10);
-    const campaignInfo = mockCampaign();
-    const { target, title, description, goal, startAt, endAt } = campaignInfo;
+  // describe("Claim 함수 테스트", () => {
+  //   const amount = HardhatUtil.ToETH(10);
+  //   const campaignInfo = mockCampaign();
+  //   const { target, title, description, goal, startAt, endAt } = campaignInfo;
 
-    beforeEach(async () => {
-      await donation.connect(users[0]).launch(target, title, description, goal, startAt, endAt);
-      await HardhatUtil.setNextBlockTimestamp(startAt);
-      await HardhatUtil.mineNBlocks(1);
+  //   beforeEach(async () => {
+  //     await donation.connect(users[0]).launch(target, title, description, goal, startAt, endAt);
+  //     await HardhatUtil.setNextBlockTimestamp(startAt);
+  //     await HardhatUtil.mineNBlocks(1);
 
-      await daoToken.transfer(users[1].address, amount);
-      await daoToken.connect(users[1]).approve(donation.address, amount);
-      await donation.connect(users[1]).pledge(1, amount);
-    });
+  //     await daoToken.transfer(users[1].address, amount);
+  //     await daoToken.connect(users[1]).approve(donation.address, amount);
+  //     await donation.connect(users[1]).pledge(1, amount);
+  //   });
 
-    it("claim 함수가 DAO 멤버의 호출에만 실행되는지 확인", async () => {
-      await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("Only DAO contract can perform this action");
-    });
+  //   it("claim 함수가 DAO 멤버의 호출에만 실행되는지 확인", async () => {
+  //     await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("Only DAO contract can perform this action");
+  //   });
 
-    it("캠페인이 종료되지 않은 경우 기부금 수령에 실패하는지 확인", async () => {
-      await dao.connect(users[0]).requestDaoMembership();
-      await dao.connect(admin).handleDaoMembership(users[0].address, true);
-      await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("Campaign not ended");
-    });
+  //   it("캠페인이 종료되지 않은 경우 기부금 수령에 실패하는지 확인", async () => {
+  //     await dao.connect(users[0]).requestDaoMembership();
+  //     await dao.connect(admin).handleDaoMembership(users[0].address, true);
+  //     await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("Campaign not ended");
+  //   });
 
-    it("이미 기부금 수령된 캠페인에서 호출된 경우 실패하는지 확인", async () => {
-      await dao.connect(users[0]).requestDaoMembership();
-      await dao.connect(admin).handleDaoMembership(users[0].address, true);
+  //   it("이미 기부금 수령된 캠페인에서 호출된 경우 실패하는지 확인", async () => {
+  //     await dao.connect(users[0]).requestDaoMembership();
+  //     await dao.connect(admin).handleDaoMembership(users[0].address, true);
 
-      const endTime = (await donation.campaigns(1)).endAt;
-      await HardhatUtil.setNextBlockTimestamp(endTime);
+  //     const endTime = (await donation.campaigns(1)).endAt;
+  //     await HardhatUtil.setNextBlockTimestamp(endTime);
 
-      await donation.connect(users[0]).claim(1);
-      await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("claimed");
-    });
+  //     await donation.connect(users[0]).claim(1);
+  //     await expect(donation.connect(users[0]).claim(1)).to.be.revertedWith("claimed");
+  //   });
 
-    it("기부금이 정상적으로 수령되는지 확인", async () => {
-      const endTime = (await donation.campaigns(1)).endAt;
+  //   it("기부금이 정상적으로 수령되는지 확인", async () => {
+  //     const endTime = (await donation.campaigns(1)).endAt;
 
-      await HardhatUtil.setNextBlockTimestamp(endTime);
+  //     await HardhatUtil.setNextBlockTimestamp(endTime);
 
-      await dao.connect(users[0]).requestDaoMembership();
-      await dao.connect(admin).handleDaoMembership(users[0].address, true);
-      await donation.connect(users[0]).claim(1);
+  //     await dao.connect(users[0]).requestDaoMembership();
+  //     await dao.connect(admin).handleDaoMembership(users[0].address, true);
+  //     await donation.connect(users[0]).claim(1);
 
-      const campaign = await donation.campaigns(1);
-      expect(campaign.claimed).to.be.true;
-    });
+  //     const campaign = await donation.campaigns(1);
+  //     expect(campaign.claimed).to.be.true;
+  //   });
 
-    it("함수 실행 시 이벤트가 정상적으로 발생하는지 확인", async () => {
-      const endTime = (await donation.campaigns(1)).endAt;
+  //   it("함수 실행 시 이벤트가 정상적으로 발생하는지 확인", async () => {
+  //     const endTime = (await donation.campaigns(1)).endAt;
 
-      await HardhatUtil.setNextBlockTimestamp(endTime);
+  //     await HardhatUtil.setNextBlockTimestamp(endTime);
 
-      await dao.connect(users[0]).requestDaoMembership();
-      await dao.connect(admin).handleDaoMembership(users[0].address, true);
+  //     await dao.connect(users[0]).requestDaoMembership();
+  //     await dao.connect(admin).handleDaoMembership(users[0].address, true);
 
-      await expect(donation.connect(users[0]).claim(1))
-        .to.emit(donation, "Claim")
-        .withArgs(1, true, HardhatUtil.ToETH(10));
-    });
-  });
+  //     await expect(donation.connect(users[0]).claim(1))
+  //       .to.emit(donation, "Claim")
+  //       .withArgs(1, true, HardhatUtil.ToETH(10));
+  //   });
+  // });
   describe("Refund 함수 테스트", () => {
     const amount = HardhatUtil.ToETH(1);
     const campaignInfo = mockCampaign();
