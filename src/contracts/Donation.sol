@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "./interface/DaoTokenInterface.sol";
 import "./interface/DaoInterface.sol";
 import "./interface/DonationInterface.sol";
+import "hardhat/console.sol";
 
 contract Donation is DonationInterface {
     ///////////// @notice 아래에 변수 추가 ////////////
@@ -16,6 +17,9 @@ contract Donation is DonationInterface {
 
     /// @notice DAO 토큰 컨트랙트 주소
     DaoTokenInterface public daoToken;
+
+    /// @notice DAO 컨트랙트 주소
+    DaoInterface public dao;
 
     ///////////// @notice 아래에 매핑 추가 ////////////
 
@@ -33,11 +37,24 @@ contract Donation is DonationInterface {
         daoToken = DaoTokenInterface(daoTokenAddr);
     }
 
+    /// @notice DAO 컨트랙트 주소 설정
+    function setDaoAdress(DaoInterface _dao) external onlyAdmin {
+        dao = _dao;
+    }
+
     ///////////// @notice 아래에 modifier 추가 ////////////
 
     /// @notice 관리자만 접근 가능하도록 설정
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can perform this action");
+        _;
+    }
 
     /// @notice DAO 회원만 접근 가능하도록 설정
+    modifier onlyDao() {
+        require(dao.getIsDaoMember(msg.sender), "Only DAO contract can perform this action");
+        _;
+    }
 
     function launch(
         address _target,
@@ -86,6 +103,10 @@ contract Donation is DonationInterface {
         pledgedUserToAmount[_campaignId][msg.sender] += _amount;
         daoToken.transferFrom(msg.sender, address(this), _amount);
 
+        if (campaign.pledged >= campaign.goal) {
+            dao.startVote(_campaignId);
+        }
+
         emit Pledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
@@ -101,7 +122,7 @@ contract Donation is DonationInterface {
         emit Unpledge(_campaignId, msg.sender, _amount, campaign.pledged);
     }
 
-    function claim(uint256 _campaignId) external {
+    function claim(uint256 _campaignId) external onlyDao {
         require(getIsEnded(_campaignId), "Campaign not ended");
 
         Campaign storage campaign = campaigns[_campaignId];

@@ -5,6 +5,7 @@ import {DaoInterface} from "./interface/DaoInterface.sol";
 import {DaoTokenInterface} from "./interface/DaoTokenInterface.sol";
 import {DonationInterface} from "./interface/DonationInterface.sol";
 import {Initializable} from "./common/upgradeable/Initializable.sol";
+import "hardhat/console.sol";
 
 contract Dao is DaoInterface, Initializable {
     /// @notice Admin 주소
@@ -64,8 +65,8 @@ contract Dao is DaoInterface, Initializable {
         _;
     }
 
-    modifier onlyDaoMember(address caller) {
-        require(isDaoMember[caller], "Only DAO members can perform this action");
+    modifier onlyDao() {
+        require(isDaoMember[msg.sender], "Only DAO members can perform this action");
         _;
     }
 
@@ -82,7 +83,7 @@ contract Dao is DaoInterface, Initializable {
         emit VoteStarted(_campaignId, goalAmount, totalAmount);
     }
 
-    function vote(uint256 _campaignId, bool agree) public onlyDaoMember(msg.sender) {
+    function vote(uint256 _campaignId, bool agree) public onlyDao {
         require(voteInProgress[_campaignId], "No vote in progress for this campaign.");
         require(!hasVoted[_campaignId][msg.sender], "You have already voted.");
 
@@ -109,6 +110,11 @@ contract Dao is DaoInterface, Initializable {
         }
     }
 
+    /// @notice DAO 멤버십 신청시 필요한 토큰 수량 설정 함수 추가
+    function setDaoMembershipAmount(uint256 amount) external onlyAdmin {
+        daoMembershipAmount = amount;
+    }
+
     function requestDaoMembership() external {
         require(!isDaoMember[msg.sender], "User is already a DAO member");
         require(daoToken.balanceOf(msg.sender) >= daoMembershipAmount, "Insufficient DAO tokens");
@@ -120,7 +126,7 @@ contract Dao is DaoInterface, Initializable {
     }
 
     function handleDaoMembership(address _user, bool _approve) external onlyAdmin {
-        if (_approve) {
+        if (_approve == true) {
             membershipRequestStatus[_user] = MembershipRequestStatusCode.APPROVED;
 
             daoMemberList.push(_user);
@@ -154,5 +160,14 @@ contract Dao is DaoInterface, Initializable {
 
     function getDaoList() external view onlyAdmin returns (address[] memory) {
         return daoMemberList;
+    }
+
+    function getIsDaoMember(address _user) external view returns (bool) {
+        return isDaoMember[_user];
+    }
+
+    /// @notice 테스트 코드를 위한 함수
+    function setIsDaoMember(address _user) external onlyAdmin {
+        isDaoMember[_user] = true;
     }
 }

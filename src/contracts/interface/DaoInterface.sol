@@ -13,6 +13,8 @@ interface DaoInterface {
 
     function vote(uint256 _campaignId, bool _agree) external;
 
+    function setDaoMembershipAmount(uint256 amount) external;
+
     function requestDaoMembership() external;
 
     function handleDaoMembership(address _user, bool _approve) external;
@@ -22,6 +24,10 @@ interface DaoInterface {
     function getMembershipRequests() external view returns (address[] memory);
 
     function getDaoList() external view returns (address[] memory);
+
+    function setIsDaoMember(address _user) external;
+
+    function getIsDaoMember(address _user) external view returns (bool);
 
     event VoteStarted(uint256 indexed campaignId, uint256 goalAmount, uint256 totalAmount);
 
@@ -36,4 +42,6 @@ interface DaoInterface {
     event DaoMembershipRejected(address indexed user, string message);
 
     event DaoMembershipRemoved(address indexed user, string message);
+
+    event DebugLog(address indexed user, string message, uint256 value);
 }

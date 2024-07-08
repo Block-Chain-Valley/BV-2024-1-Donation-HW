@@ -24,23 +24,34 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     autoMine: true,
   });
 
-  // const DaoContract = await deploy("Dao", {
+  const initializeParams = [DonationContract.address, DaoTokenContract.address];
+
+  const DaoContract = await deploy("Dao", {
+    from: developer.address,
+    contract: "Dao",
+    proxy: {
+      execute: {
+        init: {
+          methodName: "initialize", // initializer modifier가 붙은 함수의 이름
+          args: initializeParams, // initialize 실행 시 필요한 파라미터, 배열로 전달
+        },
+      },
+    },
+    log: true,
+    autoMine: true,
+  });
+
+  // 이후 업그레이드 시 사용
+  // await deploy("Dao", {
   //   from: developer.address,
   //   contract: "Dao",
-  //   proxy: {
-  //     execute: {
-  //       init: {
-  //         methodName: "initialize",
-  //         args: [DaoTokenContract.address, DonationContract.address],
-  //       },
-  //     },
-  //   },
+  //   proxy: true,
   //   log: true,
   //   autoMine: true,
   // });
 
-  // const donation = await ethers.getContractAt("Donation", DonationContract.address);
-  // await donation.connect(developer).setDaoAddress(DaoContract.address);
+  const donation = await ethers.getContractAt("Donation", DonationContract.address);
+  await donation.setDaoAdress(DaoContract.address);
 };
 
 export default func;
